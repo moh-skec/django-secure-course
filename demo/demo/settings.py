@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'oauth2_provider',
     'rest_framework',
     'django_filters',
+    'guardian',
     'api',
     'ugc',
     'billing',
@@ -136,6 +137,7 @@ FRONTEND_ROOT = os.path.abspath(os.path.join(BASE_DIR, '..', 'frontend', 'dist',
 AUTHENTICATION_BACKENDS = (
     'oauth2_provider.backends.OAuth2Backend',
     'django.contrib.auth.backends.ModelBackend',
+    'guardian.backends.ObjectPermissionBackend',
 )
 
 OAUTH2_PROVIDER = {
