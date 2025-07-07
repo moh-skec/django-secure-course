@@ -1,6 +1,7 @@
 from datetime import timedelta
 from django.utils import timezone
 
+
 def create_access_token(user):
     import oauth2_provider.models
     Application = oauth2_provider.models.get_application_model()
@@ -18,8 +19,10 @@ def create_access_token(user):
     )
     return token
 
+
 def auth_header(token):
-    return { 'HTTP_AUTHORIZATION': 'Bearer {}'.format(token) }
+    return {'HTTP_AUTHORIZATION': 'Bearer {}'.format(token)}
+
 
 def assign_perms(group_permissions):
     """
@@ -31,9 +34,10 @@ def assign_perms(group_permissions):
     from guardian.shortcuts import assign_perm
 
     for name, permissions in group_permissions.items():
-        group = Group.objects.get(name=name)
+        group, _ = Group.objects.get_or_create(name=name)
         for permission in permissions:
             assign_perm(permission, group)
+
 
 def group_has_perm(group, perm, obj):
     """
@@ -46,13 +50,14 @@ def group_has_perm(group, perm, obj):
     from guardian.shortcuts import get_objects_for_group
 
     if isinstance(group, str):
-        g = Group.objects.get(name=group_name)
+        g = Group.objects.get(name=group)
     else:
         g = group
 
     return get_objects_for_group(
         g, perm
     ).filter(id=obj.id).exists()
+
 
 def user_has_group_perm(user, perm, obj):
     """

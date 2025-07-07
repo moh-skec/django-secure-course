@@ -22,6 +22,11 @@ source env/bin/activate
 pip install setuptools  # Required for Django 3.0.6 compatibility with Python 3.12
 pip install -r requirements.txt
 
+# Set up environment variables for development
+# Copy the example environment file and update as needed
+cp .env.example .env
+# Edit .env with your preferred editor and set a secure secret key for production
+
 # Note: If celery installation fails with metadata errors, use:
 # pip install "celery[redis]>=5.0" instead of the version in requirements.txt
 
@@ -61,3 +66,29 @@ There is some data loaded into the database after you run `python manage.py migr
 - `user_c`
 
 You can login with these users through the frontend application `http://localhost:4200` and through the Django admin `http://localhost:8000/admin/`
+
+## Security Configuration
+
+This project uses environment variables for sensitive configuration. Make sure to:
+
+1. **Never commit sensitive data** like secret keys, passwords, or API tokens to version control
+2. **Use environment variables** for all sensitive configuration (see `.env.example`)
+3. **Generate a new secret key** for production deployments
+4. **Set `DEBUG=False`** in production
+5. **Configure proper `ALLOWED_HOSTS`** for your production domain
+
+### Environment Variables
+
+Required environment variables:
+
+- `DJANGO_SECRET_KEY`: Django secret key (generate a new one for production)
+- `DJANGO_DEBUG`: Set to `false` for production
+- `DJANGO_ALLOWED_HOSTS`: Comma-separated list of allowed hosts for production
+
+Example production settings:
+
+```bash
+DJANGO_SECRET_KEY=your-production-secret-key-here
+DJANGO_DEBUG=false
+DJANGO_ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+```

@@ -5,9 +5,11 @@ from demo.celery import app
 
 from ugc.models import Comment
 
+
 @app.task(name='celery.ping')
 def ping():
     pass
+
 
 @app.task(bind=True)
 def create_comment(self, user_id, text):

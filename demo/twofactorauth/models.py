@@ -7,30 +7,32 @@ from django.contrib.auth.models import User
 
 from api.models import ActivityLog
 
+
 class TwoFactorAuthCode(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     code = models.CharField(max_length=6)
     sent_on = models.DateTimeField(auto_now_add=True)
 
-    @classmethod
-    def send_code(cls, user, to_phone):
+    @classmethod  # type: ignore
+    def send_code(cls, user: User, to_phone: str) -> None:
+        # TODO: Use environment variables for these credentials
         account_sid = 'AC1b30d7a8f3d4240fb58560e3f21ebe45'
         auth_token = 'f57eaede6e648dd57209e561f5fd2172'
         client = Client(account_sid, auth_token)
         digits = '0123456789'
-        code = ''.join([choice(digits) for i in range(6)])
+        code = ''.join([choice(digits) for _ in range(6)])
         cls.objects.create(
             user=user,
             code=code,
         )
-        message = client.messages.create(
-            to=to_phone, # '+16473790277'
+        client.messages.create(
+            to=to_phone,  # '+16473790277'
             from_='+12057363740',
             body='Your auth code: ' + code,
         )
 
-    @classmethod
-    def validate_code(cls, user, code):
+    @classmethod  # type: ignore
+    def validate_code(cls, user: User, code: str) -> bool:
         if user.is_anonymous:
             return False
         existing = cls.objects.filter(

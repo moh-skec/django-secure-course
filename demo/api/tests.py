@@ -5,6 +5,8 @@ from django.utils import timezone
 from api.models import Package, PackagePermission, Booking, DeletedData, restore_booking
 from api.utils import create_access_token, auth_header
 from api.utils import group_has_perm, user_has_group_perm
+from typing import Any
+
 
 class PackageViewSetTestCase(APITestCase):
     def test_only_logged_in_users_can_view_packages(self):
@@ -25,20 +27,25 @@ class PackageViewSetTestCase(APITestCase):
         )
         self.assertEqual(response.status_code, 403)
 
+
 class PackagePermissionTestCase(APITestCase):
     def setUp(self):
         self.user = User.objects.create(username='user')
         self.auth_user = auth_header(create_access_token(self.user))
-        self.package = Package.objects.create(category='a', name='package', price=0.0, rating='medium', tour_length=1)
+        self.package = Package.objects.create(
+            category='a', name='package', price=0.0, rating='medium', tour_length=1)
         self.other_user = User.objects.create(username='other_user')
-        self.auth_other_user = auth_header(create_access_token(self.other_user))
-        self.other_package = Package.objects.create(category='a', name='other_package', price=1.0, rating='medium', tour_length=1)
+        self.auth_other_user = auth_header(
+            create_access_token(self.other_user))
+        self.other_package = Package.objects.create(
+            category='a', name='other_package', price=1.0, rating='medium', tour_length=1)
         PackagePermission.set_can_write(self.user, self.package)
         PackagePermission.set_can_write(self.other_user, self.other_package)
 
     def test_user_cannot_write_other_users_packages(self):
         self.assertTrue(PackagePermission.can_write(self.user, self.package))
-        self.assertFalse(PackagePermission.can_write(self.user, self.other_package))
+        self.assertFalse(PackagePermission.can_write(
+            self.user, self.other_package))
 
     def test_user_cannot_access_other_users_packages(self):
         response = self.client.get(
@@ -46,9 +53,10 @@ class PackagePermissionTestCase(APITestCase):
             **self.auth_user
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['id'], self.package.id)
+        response_data: Any = response.data  # type: ignore
+        self.assertEqual(response_data['id'], self.package.id)
         self.assertCountEqual(
-            response.data.keys(),
+            response_data.keys(),
             [
                 'id', 'category', 'name', 'promo', 'price',
                 'tour_length', 'rating', 'start'
@@ -66,7 +74,9 @@ class PackagePermissionTestCase(APITestCase):
             **self.auth_other_user
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['id'], self.other_package.id)
+        response_data_2: Any = response.data  # type: ignore
+        self.assertEqual(response_data_2['id'], self.other_package.id)
+
 
 class ValidationTestCase(APITestCase):
     def test_invalid_start_date_returns_error(self):
@@ -83,11 +93,13 @@ class ValidationTestCase(APITestCase):
         }
         response = self.client.post('/api/v1/packages/', data, **auth)
         self.assertEqual(response.status_code, 400)
-        self.assertRegex(response.data['start'][0], 'wrong format')
+        error_data: Any = response.data  # type: ignore
+        self.assertRegex(error_data['start'][0], 'wrong format')
 
         data['start'] = '2019-01-01'
         response = self.client.post('/api/v1/packages/', data, **auth)
         self.assertEqual(response.status_code, 201)
+
 
 class BookingPerObjectPermissionTestCase(APITestCase):
     def setUp(self):
@@ -96,11 +108,14 @@ class BookingPerObjectPermissionTestCase(APITestCase):
             price=0.0, rating='medium', tour_length=1
         )
 
-        self.user = User.objects.create(username='user', email='user@localhost')
+        self.user = User.objects.create(
+            username='user', email='user@localhost')
         self.auth_user = auth_header(create_access_token(self.user))
 
-        self.other_user = User.objects.create(username='other_user', email='other_user@localhost')
-        self.auth_other_user = auth_header(create_access_token(self.other_user))
+        self.other_user = User.objects.create(
+            username='other_user', email='other_user@localhost')
+        self.auth_other_user = auth_header(
+            create_access_token(self.other_user))
 
     def test_update_booking(self):
         booking = Booking(
@@ -111,10 +126,11 @@ class BookingPerObjectPermissionTestCase(APITestCase):
         )
         booking.save()
         self.assertTrue(self.user.has_perm('api.change_booking', booking))
-        self.assertFalse(self.other_user.has_perm('api.change_booking', booking))
+        self.assertFalse(self.other_user.has_perm(
+            'api.change_booking', booking))
 
-        url = '/api/v1/bookings/{}/'.format(booking.id)
-        data = { 'name': 'Updated Adventure' }
+        url = '/api/v1/bookings/{}/'.format(booking.pk)
+        data = {'name': 'Updated Adventure'}
 
         response = self.client.patch(url, data, **self.auth_user)
         self.assertEqual(response.status_code, 200)
@@ -126,10 +142,12 @@ class BookingPerObjectPermissionTestCase(APITestCase):
         perm = 'api.change_package'
         account_manager = Group.objects.get(name='account_manager')
         self.assertTrue(group_has_perm(account_manager, perm, self.package))
-        self.assertFalse(user_has_group_perm(self.other_user, perm, self.package))
+        self.assertFalse(user_has_group_perm(
+            self.other_user, perm, self.package))
 
         self.other_user.groups.add(account_manager)
-        self.assertTrue(user_has_group_perm(self.other_user, perm, self.package))
+        self.assertTrue(user_has_group_perm(
+            self.other_user, perm, self.package))
 
     def test_customer_support_group_permissions(self):
         booking = Booking(
@@ -148,6 +166,7 @@ class BookingPerObjectPermissionTestCase(APITestCase):
         self.assertFalse(self.other_user.has_perm(perm, booking))
         self.assertTrue(user_has_group_perm(self.other_user, perm, booking))
 
+
 class DeleteAndRestoreBooking(APITestCase):
     def setUp(self):
         self.package = Package.objects.create(
@@ -155,7 +174,8 @@ class DeleteAndRestoreBooking(APITestCase):
             price=0.0, rating='medium', tour_length=1
         )
 
-        self.user = User.objects.create(username='user', email='user@localhost')
+        self.user = User.objects.create(
+            username='user', email='user@localhost')
 
     def test_delete_and_restore(self):
         booking = Booking(
@@ -165,7 +185,7 @@ class DeleteAndRestoreBooking(APITestCase):
             email_address=self.user.email
         )
         booking.save()
-        model_id = booking.id
+        model_id = booking.pk
         self.assertEqual(Booking.objects.count(), 1)
         self.assertEqual(DeletedData.objects.count(), 0)
 
@@ -176,6 +196,7 @@ class DeleteAndRestoreBooking(APITestCase):
         restore_booking(model_id)
         self.assertEqual(Booking.objects.count(), 1)
         self.assertEqual(DeletedData.objects.count(), 0)
+
 
 class PackageCreateViewTestCase(APITestCase):
     def test_create_is_throttled(self):
@@ -199,9 +220,11 @@ class PackageCreateViewTestCase(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Package.objects.count(), expected_num_objs)
 
+
 class UserDataDownloadViewTestCase(APITestCase):
     def setUp(self):
-        self.user = User.objects.create(username='user', email='user@localhost')
+        self.user = User.objects.create(
+            username='user', email='user@localhost')
         self.auth_user = auth_header(create_access_token(self.user))
         self.package = Package.objects.create(
             category='a', name='package',
@@ -230,6 +253,6 @@ class UserDataDownloadViewTestCase(APITestCase):
 "Activity Log"
 "User #{} ""user@localhost"" saved booking #{}"
 """.format(
-        self.now.year, self.now.month, self.now.day,
-        self.user.id, self.booking.id
-    ))
+            self.now.year, self.now.month, self.now.day,
+            self.user.id, self.booking.id
+        ))

@@ -5,19 +5,16 @@ from cryptography.fernet import Fernet
 from unittest.mock import patch
 
 from celery.exceptions import Retry
-from celery.contrib.testing.worker import start_worker
 import django.test
 from django.core.cache import cache
 from django.contrib.auth.models import User
 from django.test import TestCase
-from rest_framework.test import APISimpleTestCase
-
-from demo.celery import app
 
 from api.utils import create_access_token, auth_header
 from api.models import ActivityLog
 from ugc.models import Comment, Journal
 from ugc.tasks import create_comment
+
 
 class CreateCommentTaskTestCase(TestCase):
     def setUp(self):
@@ -26,22 +23,26 @@ class CreateCommentTaskTestCase(TestCase):
 
     def test_creates_object(self):
         self.assertEqual(Comment.objects.count(), 0)
-        user_id = User.objects.first().id
+        user, _ = User.objects.get_or_create(username='test_user')
+        user_id = user.id
         cache_key = '{}/comment_created'.format(user_id)
 
         self.assertFalse(cache.has_key(cache_key))
-        create_comment(user_id, 'example')
+        create_comment.run(user_id, 'example')
         comment = Comment.objects.first()
-        self.assertEqual(comment.text, 'example')
-        self.assertEqual(cache.get(cache_key), comment.id)
+        self.assertIsNotNone(comment)
+        self.assertEqual(comment.text, 'example')  # type: ignore
+        self.assertEqual(cache.get(cache_key), comment.id)  # type: ignore
 
     @patch('ugc.tasks.create_comment.retry')
     def test_retry(self, create_comment_retry):
-        user_id = User.objects.first().id
-        create_comment(user_id, 'example')
+        user, _ = User.objects.get_or_create(username='test_user_retry')
+        user_id = user.id
+        create_comment.run(user_id, 'example')
         create_comment_retry.side_effect = Retry()
         with self.assertRaises(Retry):
-            create_comment(user_id, 'example')
+            create_comment.run(user_id, 'example')
+
 
 class JournalTestCase(TestCase):
     def setUp(self):
@@ -53,7 +54,8 @@ class JournalTestCase(TestCase):
         self.other_user = User.objects.create(
             username='other_user', email='other_user@localhost'
         )
-        self.auth_other_user = auth_header(create_access_token(self.other_user))
+        self.auth_other_user = auth_header(
+            create_access_token(self.other_user))
         Journal.objects.create(
             created_by=self.other_user, encrypted_text='hello-world'
         )
@@ -108,11 +110,13 @@ class JournalTestCase(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(ActivityLog.objects.count(), 0)
         journal = Journal.objects.last()
-        self.assertEqual(journal.created_by, self.user)
-        self.assertEqual(journal.encrypted_text, encrypted_text)
-        encrypted_bytes = bytes([ord(n) for n in journal.encrypted_text])
+        self.assertIsNotNone(journal)
+        self.assertEqual(journal.created_by, self.user)  # type: ignore
+        self.assertEqual(journal.encrypted_text, encrypted_text)  # type: ignore
+        encrypted_bytes = bytes([ord(n) for n in journal.encrypted_text])  # type: ignore
         decrypted = Fernet(client_side_key).decrypt(encrypted_bytes)
         self.assertEqual(decrypted, b'hello world')
+
 
 class JournalDeleteTestCase(TestCase):
     def setUp(self):
@@ -127,7 +131,7 @@ class JournalDeleteTestCase(TestCase):
         client = django.test.Client(enforce_csrf_checks=True)
         response = client.post(
             '/journal/',
-            { 'entry_to_delete': journal_entry.id }
+            {'entry_to_delete': journal_entry.id}
         )
         self.assertEqual(response.status_code, 403)
         self.assertEqual(Journal.objects.count(), 1)
@@ -135,10 +139,12 @@ class JournalDeleteTestCase(TestCase):
         response = client.get('/journal/')
         self.assertEqual(response.status_code, 200)
 
-        csrf_token = re.search(
+        csrf_match = re.search(
             'name="csrfmiddlewaretoken" value="(.*?)"',
             str(response.content)
-        )[1]
+        )
+        self.assertIsNotNone(csrf_match)
+        csrf_token = csrf_match[1]  # type: ignore
         response = client.post(
             '/journal/',
             {

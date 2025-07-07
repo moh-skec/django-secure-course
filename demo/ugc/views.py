@@ -1,7 +1,7 @@
 from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
 from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_protect, csrf_exempt
+from django.views.decorators.csrf import csrf_protect
 from django.views.generic import TemplateView
 
 from rest_framework.generics import CreateAPIView
@@ -13,6 +13,7 @@ from ugc.models import Comment, Journal
 from ugc.serializers import CommentSerializer, JournalSerializer
 from ugc.tasks import create_comment
 from ugc.permissions import OnlyCreatorPermission
+
 
 class CommentCreateView(CreateAPIView):
     queryset = Comment.objects.all()
@@ -35,6 +36,7 @@ class CommentCreateView(CreateAPIView):
         )
         return Response(status=200)
 
+
 class JournalViewSet(viewsets.ModelViewSet):
     queryset = Journal.objects.all()
     serializer_class = JournalSerializer
@@ -46,6 +48,7 @@ class JournalViewSet(viewsets.ModelViewSet):
         return Journal.objects.filter(
             created_by=self.request.user
         )
+
 
 @method_decorator(csrf_protect, name='dispatch')
 class JournalView(TemplateView):

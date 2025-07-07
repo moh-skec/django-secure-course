@@ -1,0 +1,19 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "./env/bin/python",
+        "python.terminal.activateEnvironment": true,
+        "python.analysis.extraPaths": [
+            "./demo"
+        ],
+        "python.analysis.autoSearchPaths": true,
+        "python.analysis.autoImportCompletions": true,
+        "python.analysis.typeCheckingMode": "basic",
+        "pylance.insidersChannel": "off",
+        "python.languageServer": "Pylance"
+    }
+}

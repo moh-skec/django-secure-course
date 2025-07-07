@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.conf.urls.static import static, serve
+from django.views.static import serve
 from django.contrib import admin
 from django.urls import path, re_path, include
 
@@ -11,7 +11,7 @@ import twofactorauth.views
 
 router = DefaultRouter()
 router.register(r'packages', api.views.PackageViewSet)
-router.register(r'public/packages', api.views.PublicPackageViewSet)
+router.register(r'public/packages', api.views.PublicPackageViewSet, basename='public-package')
 router.register(r'bookings', api.views.BookingViewSet)
 router.register(r'journal', ugc.views.JournalViewSet)
 
@@ -24,5 +24,6 @@ urlpatterns = [
     path('journal/', ugc.views.JournalView.as_view()),
     path('admin/', admin.site.urls),
     path('oauth/', include('oauth2_provider.urls', namespace='oauth2_provider')),
-    re_path(r'^(?P<path>.*)$', serve, { 'document_root': settings.FRONTEND_ROOT}),
+    re_path(r'^(?P<path>.*)$', serve,
+            {'document_root': settings.FRONTEND_ROOT}),
 ]

@@ -17,6 +17,7 @@ from api.models import Package, PackagePermission, Booking, ActivityLog
 from api.serializers import PackageSerializer, BookingSerializer
 from ugc.models import Comment
 
+
 class PackageCreateView(CreateAPIView):
     queryset = Package.objects.all()
     serializer_class = PackageSerializer
@@ -30,8 +31,10 @@ class PackageCreateView(CreateAPIView):
             cache.set('package_created', True, timeout=300)
         return response
 
+
 class PackagePagination(PageNumberPagination):
     page_size = 10
+
 
 class CanWritePackageFilterBackend(BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
@@ -53,6 +56,7 @@ class CanWritePackageFilterBackend(BaseFilterBackend):
         ).values_list('package__id', flat=True)
         return queryset.filter(id__in=own_package_ids)
 
+
 class PackageViewSet(viewsets.ModelViewSet):
     queryset = Package.objects.all()
     serializer_class = PackageSerializer
@@ -61,6 +65,7 @@ class PackageViewSet(viewsets.ModelViewSet):
     permission_classes = [TokenHasScope, TokenHasReadWriteScope]
     required_scopes = ['packages']
 
+
 class PublicPackageViewSet(viewsets.ModelViewSet):
     queryset = Package.objects.all().order_by('-price')
     serializer_class = PackageSerializer
@@ -68,10 +73,12 @@ class PublicPackageViewSet(viewsets.ModelViewSet):
     permission_classes = [BasePermission]
     search_fields = ('name', 'promo')
 
+
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
     permission_classes = [DjangoModelPermissions]
+
 
 class UserDataDownloadView(RetrieveAPIView, ProtectedResourceMixin):
     def get(self, request, *args, **kwargs):

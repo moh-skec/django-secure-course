@@ -6,6 +6,7 @@ from api.utils import create_access_token, auth_header
 
 from twofactorauth.models import TwoFactorAuthCode
 
+
 class ValidateCodeTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create(username='user')
@@ -18,27 +19,29 @@ class ValidateCodeTestCase(TestCase):
     def test_valid_code(self):
         response = self.client.post(
             '/api/v1/validate',
-            { 'auth_code': '123456' },
+            {'auth_code': '123456'},
             **self.auth_user,
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(TwoFactorAuthCode.objects.count(), 0)
         activity_log = ActivityLog.objects.last()
+        self.assertIsNotNone(activity_log)
         self.assertEqual(
-            activity_log.action,
+            activity_log.action,  # type: ignore
             'User entered correct two-factor auth code'
         )
 
     def test_invalid_code(self):
         response = self.client.post(
             '/api/v1/validate',
-            { 'auth_code': 'invalid' },
+            {'auth_code': 'invalid'},
             **self.auth_user,
         )
         self.assertEqual(response.status_code, 403)
         self.assertEqual(TwoFactorAuthCode.objects.count(), 1)
         activity_log = ActivityLog.objects.last()
+        self.assertIsNotNone(activity_log)
         self.assertEqual(
-            activity_log.action,
+            activity_log.action,  # type: ignore
             'User entered incorrect two-factor auth code'
         )

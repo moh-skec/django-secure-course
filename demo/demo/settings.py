@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,12 +24,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'gsrcduhu9_l+9)*qdr01^%b8ue4@idq91nqd3xwh0lmz7p*bg+'
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY', 'dev-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get(
+    'DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -131,7 +137,8 @@ STATIC_URL = '/static/'
 MEDIA_ROOT = os.path.abspath(os.path.join(BASE_DIR, 'api', 'uploads'))
 MEDIA_URL = '/uploads/'
 
-FRONTEND_ROOT = os.path.abspath(os.path.join(BASE_DIR, '..', 'frontend', 'dist', 'frontend'))
+FRONTEND_ROOT = os.path.abspath(os.path.join(
+    BASE_DIR, '..', 'frontend', 'dist', 'frontend'))
 
 # Authentication using OAuth 2.0
 AUTHENTICATION_BACKENDS = (
@@ -161,3 +168,5 @@ REST_FRAMEWORK = {
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
