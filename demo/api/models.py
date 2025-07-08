@@ -1,13 +1,9 @@
-import email
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core import serializers
-from django.dispatch import receiver
-from django.db.models.signals import post_save
 from guardian.shortcuts import assign_perm
 import django.utils.timezone
-from typing import TYPE_CHECKING
 
 
 def now():
@@ -43,26 +39,45 @@ class Booking(models.Model):
     def __str__(self):
         return '{} for {} on {}'.format(self.name, self.package.name, self.start)
 
+    def save(self, *args, **kwargs):
+        created = self.pk is None
+        super().save(*args, **kwargs)
+        
+        user = None
+        if self.email_address:
+            try:
+                user = User.objects.get(email=self.email_address)
+            except User.DoesNotExist:
+                pass
+
+        if created and user:
+            assign_perm('api.change_booking', user, self)
+            assign_perm('api.view_booking', user, self)
+            assign_perm('api.delete_booking', user, self)
+
+            ActivityLog.objects.create(
+                user=user,
+                action=f'User #{user.id} "{user.email}" saved booking #{self.pk}'
+            )
+        elif not created and user:
+            ActivityLog.objects.create(
+                user=user,
+                action=f'User #{user.id} "{user.email}" updated booking #{self.pk}'
+            )
+        elif not created:
+            ActivityLog.objects.create(
+                user=None,
+                action=f'Booking #{self.pk} updated (email: {self.email_address})'
+            )
+
     def delete(self, *args, **kwargs):
         booking_data = serializers.serialize('json', [self])
         DeletedData.objects.create(
-            model_type='api.Booking',
+            model_type=Booking,
             model_id=self.pk,
             data=booking_data
         )
         super().delete(*args, **kwargs)
-
-
-@receiver(post_save, sender=Booking)
-def assign_booking_permissions(sender, instance, created, **kwargs):
-    del sender, kwargs
-    user = User.objects.get(
-        email=instance.email_address) if instance.email_address else None
-    if created and user:
-        assign_perm('api.change_booking', user, instance)
-        assign_perm('api.view_booking', user, instance)
-        assign_perm('api.delete_booking', user, instance)
-
 
 class PackagePermission(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -108,16 +123,13 @@ def restore_booking(booking_id: int) -> None:
     """Restore a deleted booking from DeletedData"""
     try:
         deleted_data = DeletedData.objects.get(
-            model_type='api.Booking',
+            model_type=Booking,
             model_id=booking_id
         )
 
-        booking_data = serializers.deserialize('json', deleted_data.data)
-        booking_obj = next(booking_data)
-
-        booking_obj.save()
-
-        deleted_data.delete()
+        for instance in serializers.deserialize('json', deleted_data.data):
+            instance.save()
+            deleted_data.delete()
 
     except DeletedData.DoesNotExist:
         raise ValueError(f"No deleted booking found with ID {booking_id}")

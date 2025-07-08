@@ -18,6 +18,24 @@ from api.serializers import PackageSerializer, BookingSerializer
 from ugc.models import Comment
 
 
+class BookingObjectPermission(BasePermission):
+    """
+    Custom permission to only allow users to edit their own bookings.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in ['GET', 'HEAD', 'OPTIONS']:
+            return True
+
+        if hasattr(request.user, 'email') and request.user.email == obj.email_address:
+            return True
+
+        if hasattr(request.user, 'has_perm'):
+            return request.user.has_perm('api.change_booking', obj)
+
+        return False
+
+
 class PackageCreateView(CreateAPIView):
     queryset = Package.objects.all()
     serializer_class = PackageSerializer
@@ -77,11 +95,12 @@ class PublicPackageViewSet(viewsets.ModelViewSet):
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
-    permission_classes = [DjangoModelPermissions]
+    permission_classes = [BookingObjectPermission]
 
 
 class UserDataDownloadView(RetrieveAPIView, ProtectedResourceMixin):
     def get(self, request, *args, **kwargs):
+        del args, kwargs
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = 'attachment; filename="data.csv"'
 

@@ -111,15 +111,21 @@ class JournalTestCase(TestCase):
         self.assertEqual(ActivityLog.objects.count(), 0)
         journal = Journal.objects.last()
         self.assertIsNotNone(journal)
-        self.assertEqual(journal.created_by, self.user)  # type: ignore
-        self.assertEqual(journal.encrypted_text, encrypted_text)  # type: ignore
-        encrypted_bytes = bytes([ord(n) for n in journal.encrypted_text])  # type: ignore
+        assert journal is not None
+        self.assertEqual(journal.created_by, self.user)
+        self.assertEqual(journal.encrypted_text, encrypted_text)
+        encrypted_bytes = bytes([ord(n) for n in journal.encrypted_text])
         decrypted = Fernet(client_side_key).decrypt(encrypted_bytes)
         self.assertEqual(decrypted, b'hello world')
+
+        print('Plain text:', plain_text)
+        print('Encrypted text:', journal.encrypted_text)
+        print('Decrypted text:', decrypted)
 
 
 class JournalDeleteTestCase(TestCase):
     def setUp(self):
+        User.objects.all().delete()
         self.user = User.objects.create(
             username='user', email='user@localhost'
         )

@@ -21,7 +21,8 @@ class CommentCreateView(CreateAPIView):
     permission_classes = [BasePermission]
 
     def post(self, request, *args, **kwargs):
-        task = create_comment.apply_async(
+        del args, kwargs
+        create_comment.apply_async(
             args=(
                 request.data.get('user_id'),
                 request.data.get('text'),
@@ -67,6 +68,7 @@ class JournalView(TemplateView):
         }
 
     def post(self, request, *args, **kwargs):
+        del args, kwargs
         print(Journal.objects.count())
         if 'entry_to_delete' in request.POST:
             entry = Journal.objects.filter(

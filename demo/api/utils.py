@@ -4,17 +4,17 @@ from django.utils import timezone
 
 def create_access_token(user):
     import oauth2_provider.models
-    Application = oauth2_provider.models.get_application_model()
-    AccessToken = oauth2_provider.models.get_access_token_model()
+    application_model = oauth2_provider.models.get_application_model()
+    access_token_model = oauth2_provider.models.get_access_token_model()
     token_expiration_time = timezone.now() + timedelta(minutes=60)
-    token = AccessToken.objects.create(
+    token = access_token_model.objects.create(
         user=user,
         scope='read write packages',
         token='test{}{}'.format(
             user.id,
             int(token_expiration_time.timestamp()),
         ),
-        application=Application.objects.first(),
+        application=application_model.objects.first(),
         expires=token_expiration_time,
     )
     return token
@@ -64,8 +64,6 @@ def user_has_group_perm(user, perm, obj):
     Returns true if one of the groups that the `user is part of has the
     given permission `perm` for the given model instance `obj`.
     """
-    from guardian.shortcuts import get_objects_for_group
-
     for g in user.groups.all():
         if group_has_perm(g, perm, obj):
             return True

@@ -15,9 +15,15 @@ class TwoFactorAuthCode(models.Model):
 
     @classmethod  # type: ignore
     def send_code(cls, user: User, to_phone: str) -> None:
-        # TODO: Use environment variables for these credentials
-        account_sid = 'AC1b30d7a8f3d4240fb58560e3f21ebe45'
-        auth_token = 'f57eaede6e648dd57209e561f5fd2172'
+        import os
+        account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+        auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+        from_phone = os.getenv('TWILIO_FROM_PHONE', '+12057363740')
+
+        if not account_sid or not auth_token:
+            raise ValueError(
+                "TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN environment variables must be set")
+
         client = Client(account_sid, auth_token)
         digits = '0123456789'
         code = ''.join([choice(digits) for _ in range(6)])
@@ -26,8 +32,8 @@ class TwoFactorAuthCode(models.Model):
             code=code,
         )
         client.messages.create(
-            to=to_phone,  # '+16473790277'
-            from_='+12057363740',
+            to=to_phone,  
+            from_=from_phone,
             body='Your auth code: ' + code,
         )
 
